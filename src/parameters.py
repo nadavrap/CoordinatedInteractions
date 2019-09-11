@@ -9,6 +9,7 @@
 so the value will be printed to the STDOUT.
 """
 import os
+import sys
 
 #####################
 # Paths to software #
@@ -76,8 +77,6 @@ if __name__ == '__main__':
     To get a variable in shell:
     > WD=`python parameters.py WD`
     '''
-    import sys
-
     param_name = sys.argv[1]
     param_value = eval(param_name)
     print(param_value)
