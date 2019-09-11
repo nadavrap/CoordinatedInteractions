@@ -27,7 +27,8 @@ OR
     #!/bin/bash
     scl enable rh-python36 "python $@"
 '''
-PYTHON3 = '~/bin/py_wrapper.sh'  # Replace with python3 if that works on your system.
+HOME_DIR = os.path.expanduser('~') + '/'
+PYTHON3 = HOME_DIR + 'bin/py_wrapper.sh'  # Replace with python3 if that works on your system.
 RSCRIPT = 'Rscript'
 PLINK1 = 'plink'
 PLINK2 = 'plink2'
@@ -39,7 +40,7 @@ BOLT = BOLT_PATH + 'bolt'
     Rscript $@
 And replace value of next variable to 'R_wrapper.sh'
 '''
-PRSICE = RSCRIPT + f'''~/PRSice/PRSice.R --prsice ~/PRSice/PRSice_linux --dir ~/PRSice'''
+PRSICE = RSCRIPT + f'''{HOME_DIR}/PRSice/PRSice.R --prsice {HOME_DIR}/PRSice/PRSice_linux --dir {HOME_DIR}/PRSice'''
 
 ###################
 # UKBB data files #
