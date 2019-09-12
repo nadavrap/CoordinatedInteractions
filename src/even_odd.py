@@ -575,11 +575,11 @@ def main():
                         datetime.datetime.today().strftime('%Y_%m_%d_%H_%M_%S'))
                     jobname = f'%s{i}_{chrom}' % phenotype.replace('blood_', '')
                     cmd_str = f'''qsub -S /bin/bash -j y -wd {WD} -o {logfile} {MULTI_CORE} {QUEUE} \
-                                       -N {jobname} {PYTHON3} scripts/even_odd.py \
+                                       -N {jobname} {PYTHON3} "scripts/even_odd.py \
                                        --phenotype {phenotype} --betagenerator {args.betagenerator} \
                                        --predictor {args.predictor} \
                                        --nfolds {args.nfolds} -i {i} %(verbose)s {append_str} -t {phenofile} \
-                                       %(imputed)s --chromosome {chrom}''' % {
+                                       %(imputed)s --chromosome {chrom}"''' % {
                         'verbose': '--verbose' if args.verbose else '', 'imputed': '--imputed' if args.imputed else ''}
                     exec_str(cmd_str)
             else:
@@ -593,9 +593,9 @@ def main():
 
                     # Submit a new job to the queue
                     cmd_str = f'''qsub -S /bin/bash {QUEUE} -j y -wd {WD} -o %(logfile)s {MULTI_CORE} -N %(jobname)s \
-                    {PYTHON3} scripts/even_odd.py --phenotype %(phenotype)s --betagenerator %(betagen)s --predictor \
+                    {PYTHON3} "scripts/even_odd.py --phenotype %(phenotype)s --betagenerator %(betagen)s --predictor \
                     %(predictor)s --snps %(snps)s --nfolds %(nfolds)s -i %(i)s %(verbose)s %(append)s -t %(phenofile)s \
-                     %(imputed)s''' % {
+                     %(imputed)s"''' % {
                         'logfile': logfile, 'jobname': jobname, 'phenotype': phenotype, 'betagen': args.betagenerator,
                         'predictor': args.predictor, 'snps': s, 'nfolds': args.nfolds, 'i': i,
                         'verbose': '--verbose' if args.verbose else '', 'GIG': GIG, 'append': append_str,

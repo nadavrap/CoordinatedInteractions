@@ -14,8 +14,9 @@ import sys
 #####################
 # Paths to software #
 #####################
+HOME_DIR = os.path.expanduser('~') + '/'
 '''Might be: '/zaitlen/netapp/group/UKBIOBANK/' or '/u/project/sriram/nadavrap/UKBB/ or '/coldstorage/nadav/UKBB/'''
-WD = './'  # Working directory, make sure you have write permission
+WD = HOME_DIR + 'UKBB/'  # Working directory, make sure you have write permission
 DATA_DIR = WD
 TMP_DIR = os.environ["TMPDIR"] if "TMPDIR" in os.environ else '/tmp/'
 '''On some systems, python2.7 is still the default, and python3 is not available. Therefore we need to use a wrapper
@@ -28,7 +29,6 @@ OR
     #!/bin/bash
     scl enable rh-python36 "python $@"
 '''
-HOME_DIR = os.path.expanduser('~') + '/'
 PYTHON3 = HOME_DIR + 'bin/py_wrapper.sh'  # Replace with python3 if that works on your system.
 RSCRIPT = 'Rscript'
 PLINK1 = 'plink'
@@ -56,7 +56,7 @@ CLUMP_DIR = DATA_DIR + 'CLUMP/'
 ##########################
 # SGE cluster parameters #
 ##########################
-PARALLEL_ENVIRONMENT = 'shared'  # Can be smp, parallel, shared
+PARALLEL_ENVIRONMENT = 'smp'  # Can be smp, parallel, shared
 QUEUE = '-q long.q'  # Can be empty for default
 GIG = 2  # GB per slots
 MIN_CORES = 1
