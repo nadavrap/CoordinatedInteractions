@@ -24,34 +24,43 @@ We used UK biobank imputed data. You have to apply for, and it cannot be shared.
 
 ## Analysis is build from several steps with many details
 1. Extract covariates from UKBB data `src/covariates_generate.sh`
-1. Estimate effect size `python3 CoordinatedInteractions/src/even_odd.py --nfolds 10 --imputed --normalized --AllPCs 
---phenotype T2D --betagenerator Plink --predictor None`
+1. Estimate effect size
+    ```shell script
+    python3 CoordinatedInteractions/src/even_odd.py --nfolds 10 --imputed --normalized --AllPCs 
+    --phenotype T2D --betagenerator Plink --predictor None
+    ```
 1. Summarize effect sizes from file per chromosome to file by fold: 
-```shell script
-f=T2D
-for i in `seq 0 9`; do
-    # For each fold, first copy chromosome 1 with header, then append other chromosomes w/o headers
-    cp ${f}/plink_glm_clumped_chr1_fold_not${i}_covariates_standarized_sex_MAF0.001_*.${f}.glm.logistic \
-        ${f}/norm_plink_glm_imp_fold_${i}.tsv
-    for c in `seq 2 22`; do
-        cat ${f}/plink_glm_clumped_chr${c}_fold_not${i}_covariates_standarized_sex_MAF0.001_*.${f}.glm.logistic | \
-            tail -n+2 >> ${f}/norm_plink_glm_imp_fold_${i}.tsv 
+    ```shell script
+    f=T2D
+    for i in `seq 0 9`; do
+        # For each fold, first copy chromosome 1 with header, then append other chromosomes w/o headers
+        cp ${f}/plink_glm_clumped_chr1_fold_not${i}_covariates_standarized_sex_MAF0.001_*.${f}.glm.logistic \
+            ${f}/norm_plink_glm_imp_fold_${i}.tsv
+        for c in `seq 2 22`; do
+            cat ${f}/plink_glm_clumped_chr${c}_fold_not${i}_covariates_standarized_sex_MAF0.001_*.${f}.glm.logistic | \
+                tail -n+2 >> ${f}/norm_plink_glm_imp_fold_${i}.tsv 
+        done
     done
-done
-```
-2. Estimate PRS
-```shell script
-PVALUES="0.01 0.001
-python3 src/plink_score.py -f $f -p $PVALUES
-```
+    ```
+1. Estimate PRS
+    ```shell script
+    PVALUES="0.01 0.001
+    python3 src/plink_score.py -f $f -p $PVALUES
+    ```
 2. Summarize over folds
-```shell script
-src/plink_score.py -f $f -p $PVALUES --summarize
-```
+    ```shell script
+    src/plink_score.py -f $f -p $PVALUES --summarize
+    ```
 3. Test for coordinated interactions
 
-## Dpendencies
+When external summary statistics (variants' effect sizes) is taken from an esxternal source, and there is no need to 
+use cross validation in order to estimate it, you can skip on the relevant step.
+
+When analyzing for a subset of variants (e.g, tissue-specific), same scripts and similar commands can be used. 
+See example in [Tissue_specific_example.md](Tissue_specific_example.md). 
+
+## Dependencies
 ### R packages:
-* ukbtools
+* ukbtools, argparse, preprocessCore
 ### Python
-* 
+* math, argparse, glob, numpy, pandas, shlex, shutil, socket, subprocess, tempfile
