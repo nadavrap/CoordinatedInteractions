@@ -52,6 +52,7 @@ GENOTYPE_DIR = f'{WD}GEN/'
 PRSICE_TARGET = '%sukbb' % GENOTYPE_DIR
 IMP_DIR = DATA_DIR + 'IMP/'
 CLUMP_DIR = DATA_DIR + 'CLUMP/'
+FREQ_DIR = DATA_DIR + 'FREQ/'
 
 ##########################
 # SGE cluster parameters #
@@ -61,6 +62,13 @@ QUEUE = '-q long.q'  # Can be empty for default
 GIG = 2  # GB per slots
 MIN_CORES = 1
 MULTI_CORE = f'-pe {PARALLEL_ENVIRONMENT} {MIN_CORES}-'
+NSLOTS = int(os.environ["NSLOTS"]) if "NSLOTS" in os.environ else 1
+SGE_TASK_ID=os.environ["SGE_TASK_ID"] if "SGE_TASK_ID" in os.environ else None
+if SGE_TASK_ID == 'undefined':
+    SGE_TASK_ID = None
+elif SGE_TASK_ID is not None:
+    SGE_TASK_ID = int(SGE_TASK_ID) - 1
+
 
 ###############
 # Parameters #

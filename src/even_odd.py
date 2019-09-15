@@ -40,13 +40,6 @@ PRSICE_NO_COVAR = None
 # Long string with all dummy covariates
 DEFAULT_COVAR_NAMES = open(WD + 'CSV/default_covar_names.txt').readline().strip()
 ALL_PCS_COVAR_NAMES = open(WD + 'CSV/covarnames_40PCs.txt').readline().strip()
-NSLOTS = int(os.environ["NSLOTS"]) if "NSLOTS" in os.environ else 1
-# os.environ["OMP_NUM_THREAD"] = str(NSLOTS)
-SGE_TASK_ID = os.environ["SGE_TASK_ID"] if "SGE_TASK_ID" in os.environ else None
-if SGE_TASK_ID == 'undefined':
-    SGE_TASK_ID = None
-elif SGE_TASK_ID is not None:
-    SGE_TASK_ID = int(SGE_TASK_ID) - 1
 
 
 def verboseprint(x):
