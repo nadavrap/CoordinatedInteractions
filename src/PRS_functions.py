@@ -1,6 +1,7 @@
 #!python3
 """Set of functions needed in multiple scripts."""
 import glob
+import os
 import shlex
 import shutil
 import subprocess
