@@ -1,6 +1,6 @@
 # Coordinated interaction
 This is a collection of scripts in python, R and shell scripts that were used in the analysis and data generation of 
-the manuscript "PRS Coordinated interactions".
+the manuscript "Coordinated Interaction: A model and test for globally signed epistasis in complex traits", Sheppard et al. 2020.
 
 ## Software
 ### Required:
@@ -22,7 +22,7 @@ We used UK biobank imputed data. You have to apply for, and it cannot be shared.
 * Imputed genomic data
 * Phenotipic data
 
-## Analysis is build from several steps with many details
+## PRS and tissue-specific PRS are built from several steps with many details
 1. Extract covariates from UKBB data `src/covariates_generate.sh`
 1. Estimate effect size
     ```shell script
@@ -58,6 +58,23 @@ use cross validation in order to estimate it, you can skip on the relevant step.
 
 When analyzing for a subset of variants (e.g, tissue-specific), same scripts and similar commands can be used. 
 See example in [Tissue_specific_example.md](Tissue_specific_example.md). 
+
+## Coordinated interaction is tested using the PRS
+
+### Generating Figure 2 and Table 2: Even/Odd estimator for CI in UKB
+
+This is performed by the R scripts in test_ci/ukb_eo. These scripts also generate Supp Figs 1 and 2, and Supplementary Table 1 (called table2.csv), a more complete version of Table 2.
+
+
+### Generating Figure 3 and Table 3: Tissue-specific estimator for CI in UKB
+
+This is performed by the R scripts in test_ci/ukb_tiss. These analyses depend on tissue/cell type-specific genomic annotations. These were obtained from https://github.com/bulik/ldsc, which were derived by (Finucane et al., 2018) using previously generated data (Fehrmann et al. and 2015; Pers et al., 2015).
+
+
+### Generating Figure 4: Tissue pair-specific estimator for CI in UKB
+
+This is performed by the R scripts in test_ci/ukb_tissXtiss.
+
 
 ## Dependencies
 ### R packages:
