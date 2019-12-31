@@ -22,7 +22,7 @@ We used UK biobank imputed data. You have to apply for, and it cannot be shared.
 * Imputed genomic data
 * Phenotipic data
 
-## Generating PRS and tissue-specific PRS (Nadav Rappoport)
+## Generating PRS and tissue-specific PRS (contact: Nadav Rappoport)
 1. Extract covariates from UKBB data `src/covariates_generate.sh`
 1. Estimate effect size
     ```shell script
@@ -59,7 +59,7 @@ use cross validation in order to estimate it, you can skip on the relevant step.
 When analyzing for a subset of variants (e.g, tissue-specific), same scripts and similar commands can be used. 
 See example in [Tissue_specific_example.md](Tissue_specific_example.md). 
 
-## Estimating Coordinated Interaction (Andy Dahl)
+## Estimating Coordinated Interaction (contact: Andy Dahl)
 
 ### Generating Figure 2 and Table 2: Even/Odd estimator for CI in UKB
 
