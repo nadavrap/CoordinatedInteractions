@@ -1,6 +1,5 @@
 # Coordinated interaction
-This is a collection of scripts in python, R and shell scripts that were used in the analysis and data generation of 
-the manuscript "Coordinated Interaction: A model and test for globally signed epistasis in complex traits", Sheppard et al. 2020.
+This is a collection of scripts in python, R and shell that were used in the analysis and data generation of the manuscript "Coordinated Interaction: A model and test for globally signed epistasis in complex traits", Sheppard et al. 2020.
 
 ## Software
 ### Required:
@@ -19,9 +18,7 @@ Scripts were developed under the assumption of an available SGE cluster as many 
 * BOLT-LMM
 
 ## Data
-We used UK biobank imputed data. You have to apply for, and it cannot be shared.
-* Imputed genomic data
-* Phenotipic data
+We used UK biobank imputed genotype data and phenotype data. You have to apply for, and it cannot be shared.
 
 ## Generating PRS and tissue-specific PRS (contact: Nadav Rappoport)
 1. Extract covariates from UKBB data `src/covariates_generate.sh`
@@ -79,6 +76,6 @@ This is performed by the R scripts in test_ci/ukb_tissXtiss.
 
 ## Dependencies
 ### R packages:
-* ukbtools, argparse, preprocessCore
+* ukbtools, argparse, preprocessCore, doParallel, foreach
 ### Python
 * math, argparse, glob, numpy, pandas, shlex, shutil, socket, subprocess, tempfile
