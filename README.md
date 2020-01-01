@@ -9,8 +9,7 @@ the manuscript "Coordinated Interaction: A model and test for globally signed ep
 * Python3.6
 * R3.6.1
 
-Scripts were developed under the assumption of an available SGE cluster as many jobs are been submitted. <> In case this 
-is not the case, please contact the authors.
+Scripts were developed under the assumption of an available SGE cluster as many jobs are been submitted. <> (In case this is not the case, please contact the authors.)
 
 ### Optional:
 * SAGE
