@@ -66,7 +66,7 @@ This is performed by the R scripts in test_ci/ukb_eo. These scripts also generat
 
 ### Generating Figure 3 and Table 3: Tissue-specific estimator for CI in UKB
 
-This is performed by the R scripts in test_ci/ukb_tiss. These analyses depend on tissue/cell type-specific genomic annotations. These were obtained from https://github.com/bulik/ldsc, which were derived by (Finucane et al., 2018) using previously generated data (Fehrmann et al. and 2015; Pers et al., 2015).
+This is performed by the R scripts in test_ci/ukb_tiss. These analyses depend on tissue-/cell type-specific genomic annotations. These were obtained from https://github.com/bulik/ldsc, which were derived by (Finucane et al., 2018) using previously generated data (Fehrmann et al. and 2015; Pers et al., 2015).
 
 
 ### Generating Figure 4: Tissue pair-specific estimator for CI in UKB
