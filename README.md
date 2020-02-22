@@ -42,7 +42,7 @@ We used UK biobank imputed genotype data and phenotype data. You have to apply f
     ```
 1. Estimate PRS
     ```shell script
-    PVALUES="0.01 0.001
+    PVALUES="1e-08 1e-07 1e-06 1e-05 0.0001 0.001 0.01 0.05 0.1 1.0"
     python3 src/plink_score.py -f $f -p $PVALUES
     ```
 2. Summarize over folds
