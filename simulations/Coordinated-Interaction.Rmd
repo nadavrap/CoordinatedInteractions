@@ -7,6 +7,22 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+quantnorm <- function (Y)
+{
+    P <- ncol(Y)
+    for (p in 1:P) {
+        if (all(Y[, p] == 1))
+            next
+        obs <- which(!is.na(Y[, p]))
+        ranks <- rank(Y[obs, p])
+        quantiles <- qnorm(ranks/(length(ranks) + 1))
+        Y[obs, p] <- quantiles
+    }
+    Y <- scale(as.matrix(Y))
+    Y <- matrix(Y, nrow(Y), ncol(Y))
+    return(Y)
+}
 ```
 
 This document provides a simple simulation framework for exploring Coordinated Interaction and the Even-Odd test.
@@ -20,7 +36,7 @@ M   <- 100 #number of SNPs
 h2  <- 0.4 #heritabilty
 h2x <- 0.2 #heritability due to epistasis
 ```
-We draw allele frequencies from a uniform distirbution, and draw SNPs from corresponding binomial distributions:
+We draw allele frequencies from a uniform distribution, and draw SNPs from corresponding binomial distributions:
 ```{r}
 set.seed(123)
 freqs = runif(M,0.05,0.95)
@@ -201,15 +217,15 @@ EOtest( betahatfxn(genos[trn,],y2[trn]), genos[tst,], y2[tst] )
 ### Assessing phenotype rescaling
 
 In the case of intra-pathway interaction, e.g. $y_1$, the CI may appear to be merely a phenotype scaling issue. However, we show in the Supplement (Section 5.2) that the sign and significance of CI are unchanged by rescaling the phenotype (under regularity conditions). For example, the CI persists if we quantile normalize the phenotype $y_1$: 
-..
+
 ```{r}
-q1 = as.numeric(phenix:::quantnorm(as.matrix(y1)))
+q1 = as.numeric(quantnorm(as.matrix(y1)))
 EOtest( betahatfxn(genos[trn,],q1[trn]), genos[tst,], q1[tst] )
 ```
 
 ### The Even-Odd test for different chromsome splits
 
-The EO test power increases when the (arbitary) chromosome partition used with the causal pathway partition:
+The EO test power increases when the (arbitrary) chromosome partition used with the causal pathway partition:
 ```{r}
 EOtest( c(rbind(betas1,betas2)), genos, y2, E=1:(M/2)*2-1, O=1:(M/2)*2 )
 ```
