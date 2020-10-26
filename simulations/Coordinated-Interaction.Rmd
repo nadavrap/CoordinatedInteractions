@@ -1,8 +1,8 @@
 ---
 title: "Coordinated Interaction"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -62,7 +62,7 @@ causpairs <- sapply( 1:K, function(k) sample(M,2) )
 gprods    <- sapply( 1:K, function(k) genos[,causpairs[1,k]]*genos[,causpairs[2,k]] )
 y_iso = genos %*% betas + gprods %*% omega_iso + rnorm(N,0,sqrt(1-h2-h2x))
 ```
-Here, we define $\omega_iso \in \R^K$ as the vector of pairwise epistasis effects for the $K$ causal epistatic SNP pairs.
+Here, we define $\omega_{iso} \in \mathbb{R}^K$ as the vector of pairwise epistasis effects for the $K$ causal epistatic SNP pairs.
 
 ## Coordinated Interaction Model
 
