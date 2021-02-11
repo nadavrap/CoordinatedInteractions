@@ -74,6 +74,15 @@ This is performed by the R scripts in test_ci/ukb_tiss. These analyses depend on
 This is performed by the R scripts in test_ci/ukb_tissXtiss.
 
 
+## Simulating Coordinated Epistasis (contact: Brooke Sheppard)
+
+### Generating Table 1: Polygenic simulations under additivity, isotropic interaction, or Coordinated Epistasis assuming random mating, population structure, or assortative mating
+
+This is performed by the R scripts in simulations.  
+
+These scripts also generate Table S2 (simulations using UKB MAF distribution), Table S3 (simulations using third-order interactions), and Figure S1 (simulation results under varying parameters of N, h^2, and \gamma). Please note simulations in Table S2 require an unprovided file containing MAFs from UKB imputed genotype data.
+
+
 ## Dependencies
 ### R packages:
 * ukbtools, argparse, preprocessCore, doParallel, foreach
