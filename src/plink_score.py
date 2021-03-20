@@ -50,7 +50,7 @@ def run_plink_score(bfile, scorefile, outfile, maf=None, keep=None, extract=None
                 if 'Error' in line:
                     break
             if line.startswith('End time:'):
-                print('Score results already presents')
+                print(f'Score results already presents: {outfile}')
                 return outfile
     maf = '' if maf is None else f'--maf {maf}'
     keep = '' if keep is None else f'--keep {keep}'
@@ -60,9 +60,9 @@ def run_plink_score(bfile, scorefile, outfile, maf=None, keep=None, extract=None
     outdir, baseoutfile = os.path.split(f'{outfile}')
     cmd = f'{PLINK2} {maf} --out {tmpdir}{baseoutfile} --{target_type}file {bfile} {keep} {extract} ' \
           f'--score {scorefile} header list-variants ignore-dup-ids ' \
-          f'cols=maybefid,maybesid,phenos,nmissallele,dosagesum,scoreavgs,scoresums --threads {NSLOTS} ' \
+          f'cols=maybefid,maybesid,phenos,nallele,dosagesum,scoreavgs,scoresums --threads {NSLOTS} ' \
           f'{precomputed_freqs} --rm-dup force-first '
-
+    # Note, nallele was previosly named nmissallele
     try:
         exec_str(cmd)
     except Exception as e:
@@ -170,6 +170,7 @@ def main():
     parser.add_argument('--AllPCs', action='store_true', default=False, help='Use gwas with 40PCs.')
     parser.add_argument('-t', '--tissuespecific', action='store_true', default=False,
                         help='Perform a tissue specific scoring. Conjugated with -b.')
+    parser.add_argument('--remove_score_files', action='store_true', default=False, help='Remove score files (norm_score_imp_chr*_fold?_P*)')
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()
@@ -197,7 +198,7 @@ def main():
         outfilestr = '{WD}{phenotype}/{subdir}norm_score_{impORpgen}_chr{chromosome}_fold_{fold_idx}_P{pvalue}{suffix}'
 
         if args.summarize:
-            summarize_scores(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds=args.external)
+            summarize_scores(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds=args.external, to_remove_score_files=args.remove_score_files)
             continue
 
         if args.fold_idx is None:
@@ -223,22 +224,24 @@ def main():
         for chromosome in chromosomes:
             if args.imputed:
                 # bfile
-                bpfile = f'{IMP_DIR}ukb_imp_chr{chromosome}_MAF0.001'
-                is_pgen = False
+                #bpfile = f'{IMP_DIR}ukb_imp_chr{chromosome}_MAF0.001'
+                bpfile = f'{IMP_DIR}ukb_imp_chr{chromosome}_pgen'
+                is_pgen = True
             else:
                 # pgen
                 bpfile = f'{CLUMP_DIR}clumped_chr{chromosome}_pgen'
                 is_pgen = True
             outfile = eval('f"' + outfilestr + '"')
             # extract = f'{CLUMP_DIR}chr{chromosome}_clumped.txt'
-            extract = args.extract
+            if not args.extract:
+                extract = bpfile + '.pvar'
+            else:
+                extract = args.extract
 
             precomputed_freqs = ''
             # print(f'{FREQ_DIR}{phenotype}_imp_chr{chromosome}_freq_rm_dup.afreq')
-            if file_not_empty(f'{FREQ_DIR}{phenotype}_imp_chr{chromosome}_freq_rm_dup.afreq'):
-                precomputed_freqs_file = f'{FREQ_DIR}{phenotype}_imp_chr{chromosome}_freq_rm_dup.afreq'
-            else:
-                precomputed_freqs_file = f'{FREQ_DIR}{phenotype}_imp_chr{chromosome}_freq.afreq' if args.imputed else f'{FREQ_DIR}{phenotype}_clumped_chr{chromosome}_pgen_freq.afreq '
+            #if file_not_empty(f'{FREQ_DIR}{phenotype}_imp_chr{chromosome}_freq_rm_dup.afreq'):
+            precomputed_freqs_file = f'{FREQ_DIR}ukb_imp_chr{chromosome}_pgen_rmdup.afreq' # f'{FREQ_DIR}ukb_imp_pgen_rmdup.afreq'
             if file_not_empty(precomputed_freqs_file):
                 precomputed_freqs = f'--read-freq {precomputed_freqs_file}'
 
@@ -272,7 +275,7 @@ def remove_score_files(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen,
                 os.remove(f)
 
 
-def summarize_scores(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds=False):
+def summarize_scores(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds=False, to_remove_score_files=False):
     """Given you already have results (score) for each fold and for each chromosome, summarize it to a single file."""
     outfile = f'{WD}{phenotype}/norm_score_P{pvalue}{suffix}.csv'
     nfiles = 22 * 10  # 22 chromosomes times 10 folds
@@ -285,7 +288,8 @@ def summarize_scores(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, n
         with open(outfile) as f:
             if len(f.readlines()) > 2:
                 print(outfile + ' already presents.')
-                remove_score_files(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds, folds)
+                if to_remove_score_files:
+                    remove_score_files(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds, folds)
                 return ()
     phenotypes = get_phenotype(phenotype)
     with open(outfile, 'w') as o:
@@ -309,7 +313,7 @@ def summarize_scores(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, n
             for k, v in prss.items():
                 v = v + ['0'] * (22 - len(v))  # Complete missing by zeros
                 o.write(f'{k[0]},{k[1]},{phenotypes[k]},' + ','.join(v) + '\n')
-    if files_counter == nfiles:
+    if files_counter == nfiles and to_remove_score_files:
         remove_score_files(phenotype, pvalue, outfilestr, suffix, subdir, impORpgen, no_folds, folds)
 
 

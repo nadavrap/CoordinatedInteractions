@@ -5,9 +5,9 @@
 
 library(ukbtools) # See examples here: https://kenhanscombe.github.io/ukbtools/
 suppressPackageStartupMessages(library("argparse"))
-
-WD <- system('python parameters.py WD' ,intern=TRUE)
-FNAME <- system('python parameters.py UKB_FNAME' ,intern=TRUE)
+SCRIPTS_DIR <- '/u/project/sriram/nadavrap/UKBB/CoordinatedInteractions/src/'
+WD <- system(paste0('python3 ', SCRIPTS_DIR, 'parameters.py WD') ,intern=TRUE)
+FNAME <- system(paste0('python3 ', SCRIPTS_DIR, 'parameters.py UKB_FNAME') ,intern=TRUE)
 #FNAME='ukb27646'
 #FNAME="ukb21608"
 #FNAME='ukb25904'

@@ -5,8 +5,10 @@
 library(ukbtools)
 suppressPackageStartupMessages(library("argparse"))
 
-PATH <- system('python parameters.py WD' ,intern=TRUE)
-FNAME <- system('python parameters.py UKB_FNAME' ,intern=TRUE)
+SCRIPTS_DIR <- '/u/project/sriram/nadavrap/UKBB/CoordinatedInteractions/src/'
+PATH <- system(paste0('python3 ', SCRIPTS_DIR, 'parameters.py WD') ,intern=TRUE)
+FNAME <- system(paste0('python3 ', SCRIPTS_DIR, 'parameters.py UKB_FNAME') ,intern=TRUE)
+FNAMES <- c('ukb21608', 'ukb27646', 'ukb25904')
 
 pheno2ID = list(T2D=2443,
                 blood_EOSINOPHIL_COUNT=30150,
@@ -67,12 +69,12 @@ pheno2ID = list(T2D=2443,
 
 
 # Takes about 25 minutes
-get_data <- function() {
-	 fname=paste0(FNAME, "_data.rds")
+get_data <- function(pref) {
+	 fname=paste0(pref, "_data.rds")
 	 if (!file.exists(fname)) {
-	 my_ukb_data <- ukb_df(FNAME, path=PATH)
+	 my_ukb_data <- ukb_df(pref, path=PATH)
 	 # Create a field-to-descriptive name key, as dataframe or named lookup vector.
-	 my_ukb_key <- ukb_df_field(FNAME, path = PATH)
+	 my_ukb_key <- ukb_df_field(pref, path = PATH)
 	# save(my_ukb_data, file = fname)
 	saveRDS(my_ukb_data, file = fname)
 	 } else {
@@ -80,10 +82,10 @@ get_data <- function() {
 	 }
 	 my_ukb_data
 }
-var_map <- function() {
-	fname <- paste0(FNAME,'_variables_map.rds')
+var_map <- function(pref) {
+	fname <- paste0(pref,'_variables_map.rds')
 	if (!file.exists(fname)) {
-	    my_ukb_key <- ukb_df_field(FNAME, path = PATH)
+	    my_ukb_key <- ukb_df_field(pref, path = PATH)
 	    if (my_ukb_key[1,1] =='eid') {
 	    	    my_ukb_key <- my_ukb_key[2:nrow(my_ukb_key),]
 	    }
@@ -130,10 +132,21 @@ median_and_agg <- function(data_ids, my_ukb_data, my_ukb_key, aggfunc='+') {
     res
 }
 
-write_pheno <- function(my_ukb_data, data_id, agg_func=NA, field_out_name, fname, negativeAsNA=FALSE) {
-	my_ukb_key <- var_map()
-        my_ukb_data  <- my_ukb_data[,c('eid', get_cols_idxs(my_ukb_key, data_id))]
-
+write_pheno <- function(data_id, agg_func=NA, field_out_name, fname, negativeAsNA=FALSE) {
+    for (pref in FNAMES) {
+        my_ukb_key <- var_map(pref)
+        cols_idx <- get_cols_idxs(my_ukb_key, data_id)
+        print(paste('Column index for', paste(data_id), 'is/are:', paste(cols_idx), 'in', pref))
+        if (! all(is.na(cols_idx))) {
+            break
+        }
+    }
+    my_ukb_data <- get_data(pref)
+    print(paste('Retrieved data for', nrow(my_ukb_data), 'samples.'))
+    
+    my_ukb_data <- my_ukb_data[,c('eid', cols_idx)]
+    print(paste('Number of columns:', ncol(my_ukb_data)))
+    
         if (negativeAsNA) {
             print(paste('Setting negative values as NA.',
                         'Useful as for some numeric data types',
@@ -227,23 +240,22 @@ get_suitable_agg_function <- function(pheno_name) {
 
 # create parser object
 parser <- ArgumentParser(description=paste('Extract a single phenotype. In case multi columns associated, ',
-                            'decide whehter aggregate or not. Notice that not all phenotypes are implemented yet.')
+                            'decide whehter aggregate or not. Notice that not all phenotypes are implemented yet.'))
 # Phenotype codes
 parser$add_argument('-i', '--pheno_id', type="integer", help='Phenotype code (e.g., 50, 22001, 22006)')
 parser$add_argument('-n', '--pheno_name', help=paste('Phenotype name - implemented only for', paste(names(pheno2ID), collapse=' ')), default=NULL)
 parser$add_argument('-o', '--out', help='Output filename')
+parser$add_argument('-f', '--data_file', help='UKB Data file prefix', default=FNAME)
 #parser$add_argument('-a', '--agg_func', default=NULL, help='Aggregation function. Default no aggregation, but print all columns.')
 
 args <- parser$parse_args()
-
-my_ukb_data <- get_data()
-print(paste('Retrieved data for', nrow(my_ukb_data), 'samples.'))
 
 agg_func <- NA
 
 pheno_id = args$pheno_id
 if (!is.null(args$pheno_name)) {
     pheno_id = pheno2ID[[args$pheno_name]]
+    print(paste('Phenotype named', args$pheno_name, 'was mapped to id:', pheno_id))
 }
 
 agg_func <- get_suitable_agg_function(args$pheno_name)
@@ -254,4 +266,5 @@ if (args$pheno_name %in% c('repro_NumberChildrenEverBorn_Males', 'repro_NumberCh
     negativeAsNA <- FALSE
 }
 
-write_pheno(my_ukb_data, pheno_id, agg_func, args$pheno_name, args$out, negativeAsNA=negativeAsNA)
+#write_pheno(my_ukb_data, pheno_id, agg_func, args$pheno_name, args$out, negativeAsNA=negativeAsNA)
+write_pheno(pheno_id, agg_func, args$pheno_name, args$out, negativeAsNA=negativeAsNA)

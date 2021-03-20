@@ -43,11 +43,14 @@ def exec_str(command, shell=False, stdout=None, verbose=False, env=None):
     """Execute the given string. If failed, exit and print status.
     """
     if verbose:
-        print('executing: ' + command)
+        print(f'executing: {command}')
     if env is None:
+        #print('No env')
         stats = subprocess.call(shlex.split(command), shell=shell, stdout=stdout)
+        #stats = subprocess.call(command, shell=shell, stdout=stdout)
     else:
         stats = subprocess.call(shlex.split(command), shell=shell, stdout=stdout, env=env)
+        #stats = subprocess.call(command, shell=shell, stdout=stdout, env=env)
     if stats != 0:
         sys.stdout.flush()
         sys.stderr.flush()

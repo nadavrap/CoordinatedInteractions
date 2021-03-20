@@ -7,6 +7,7 @@ Can be run with a specified fold number and explicit chromosome, or can submit a
 Example of submissions:
 # PHENO=BMI; qsub -pe shared 10- -N ${PHENO}_even_odd python3 scripts/even_odd.py --phenotype ${PHENO} \
 --betagenerator Plink --predictor PRSice --evenodd --nfolds 10 --verbose
+python3 CoordinatedInteractions/src/even_odd.py --nfolds 10 --imputed --normalized --AllPCs --phenotype Height --betagenerator Plink --predictor None --samples_to_include CSV/covariates_norel3.cov --verbose
 """
 import argparse
 import collections
@@ -23,7 +24,6 @@ from PRS_functions import *
 # plink --bfile GEN/ukbb --freq --out snpQC/ukbb_freq
 # awk -v MAF="${MAF}" '{if ($5 < MAF) {print $1}}' ukbb_freq.frq > maf_lt_${MAF}.txt
 MAF_SNPS = WD + 'snpQC/maf_lt_%s.txt' % MAF
-SCRIPTS_PATH = WD + '/src/'
 TABLES_DIR = BOLT_PATH + 'tables/'
 EXTRACT_SCRIPT = SCRIPTS_PATH + 'ukb_extract_phenotype.R'
 MERGED_GENOTYPE = GENOTYPE_DIR + 'ukbb'
@@ -34,7 +34,8 @@ SAMPLES_TO_EXCLUDE = WD + 'sampleQC/samples_to_exclude.fam'
 # Standarize covariates using plink:
 # plink2 --bfile ukbb --covar covariates2.cov --covar-variance-standardize --write-covar --out covariates_standarized
 # DEFAULT_COVAR_FILE=WD+'CSV/covariates_standarized.cov'
-DEFAULT_COVAR_FILE = WD + 'CSV/covariates_standarized_sex.cov'  # Where Sex replaced from Male/Femal/NONE to 1/0/NA
+#DEFAULT_COVAR_FILE = WD + 'CSV/covariates_standarized_sex.cov'  # Where Sex replaced from Male/Femal/NONE to 1/0/NA
+DEFAULT_COVAR_FILE = WD + 'CSV/covariates_stand_norel3.cov'  # Where Sex replaced from Male/Femal/NONE to 1/0/NA
 BOLT_COVAR_FILE = WD + 'CSV/covariates.cov'
 PRSICE_NO_COVAR = None
 # Long string with all dummy covariates
@@ -63,7 +64,7 @@ def get_even_odd_chrs_files():
     return GENOTYPE_DIR + 'ukbb_even_chrs.txt', GENOTYPE_DIR + 'ukbb_odd_chrs.txt'
 
 
-def get_phenotypefile(phenotype):
+def get_phenotypefile(phenotype, verbose=False):
     """Phenotype can be a name of a phenotype, or an ID of UKBB phenotype.
     Might also add implementation of reading phenotype from a file.
     Returns a name of the phenotype file.
@@ -73,7 +74,7 @@ def get_phenotypefile(phenotype):
         verboseprint('Phenotype file already present for %s' % phenotype)
     else:
         cmd_str = f'''{RSCRIPT} {EXTRACT_SCRIPT} --pheno_name {phenotype} --out {phenofile}'''
-        exec_str(cmd_str)
+        exec_str(cmd_str, verbose=verbose)
         verboseprint('End extracting phenotype')
     return phenofile
 
@@ -128,7 +129,7 @@ def run_bolt(fold_idx, phenofile, covarnames, phenotype, covarfile=BOLT_COVAR_FI
 
 
 def run_plink_glm(fold_idx, phenofile, covarfile, covarnames, extract=None, phenotype=None, is_binary_trait=False,
-                  append='', **kwargs):
+                  append='', chrom=None, **kwargs):
     """Run Plink to estimate effect sizes.
     Time examples, Height with 10 cores took 20 hours for odd chromosomes
     Height with 28 cores took 20 hours
@@ -166,9 +167,16 @@ def run_plink_glm(fold_idx, phenofile, covarfile, covarnames, extract=None, phen
 
     memory = NSLOTS * GIG * 750
     extract = '' if extract is None else ('--extract ' + extract)
+
+    freq_file = f'{FREQ_DIR}ukb_imp_chr{chrom}_pgen_rmdup.afreq'
+    freq_file_opt = f'--read-freq {freq_file} --extract {freq_file}' if file_not_empty(freq_file) else ''
+    verboseprint('Frequencies files were %sfound' % ('' if freq_file else 'not '))
+
+    glm_modifier = 'cc-residualize no-firth' if is_binary_trait else '' # firth-residualize
+
     verboseprint('Allocating %s MB (%s slots * %sGB per slots * 950 MB/GB)' % (memory, NSLOTS, GIG))
-    args = f'''--bfile {MERGED_GENOTYPE} --keep {keepsamples} {extract} \
-    --threads {NSLOTS} --pheno {phenofile} --pheno-name {phenotype} --glm hide-covar --covar {covarfile} \
+    args = f'''--bfile {MERGED_GENOTYPE} --keep {keepsamples} {extract} {freq_file_opt}\
+    --threads {NSLOTS} --pheno {phenofile} --pheno-name {phenotype} --glm {glm_modifier} hide-covar --covar {covarfile} \
     --covar-name {covarnames} --out {tmpoutfname} --memory {memory}'''
 
     my_env = os.environ.copy()
@@ -227,10 +235,15 @@ def run_plink_glm_imputed(fold_idx, phenofile, covarfile, covarnames, extract=No
     memory = NSLOTS * GIG * 950
     to_extract = '' if extract is None else f'--extract {extract}'
     pfile = f'{CLUMP_DIR}clumped_chr{chrom}_pgen' if clumped else f'{IMP_DIR}ukb_imp_chr{chrom}_pgen'
+    freq_file = f'{FREQ_DIR}ukb_imp_chr{chrom}_pgen_rmdup.afreq'
+    freq_file_opt = f'--read-freq {freq_file} --extract {freq_file}' if file_not_empty(freq_file) else ''
+    verboseprint('Frequencies files %sfound' % ('' if freq_file else 'not '))
 
+    glm_modifier = 'cc-residualize no-firth' if is_binary_trait else '' # firth-residualize no-firth firth-residualize 
+    
     verboseprint('Allocating %s MB (%s slots * %sGB per slots * 950 MB/GB)' % (memory, NSLOTS, GIG))
-    exec_str(f'''{PLINK2} --pfile {pfile} --keep {keepsamples} {to_extract} --maf {MAF}\
-    --threads {NSLOTS} --pheno {phenofile} --pheno-name {phenotype} --glm hide-covar --covar {covarfile}\
+    exec_str(f'''{PLINK2} --pfile {pfile} --keep {keepsamples} {to_extract} --maf {MAF} {freq_file_opt} \
+    --threads {NSLOTS} --pheno {phenofile} --pheno-name {phenotype} --glm {glm_modifier} hide-covar --covar {covarfile}\
     --covar-name {covarnames} --out {tmpoutfname} --memory {memory}''')
 
     verboseprint('End running plink glm imputed')
@@ -339,7 +352,7 @@ def run_prsice(keepsamples, basefile, phenofile, phenotype, extract, covarfile=N
     return outfname
 
 
-def split_to_nfolds(phenotype, phenotype_fname, nfolds):
+def split_to_nfolds(phenotype, phenotype_fname, nfolds, samples_to_exclude=None, samples_to_include=None, normalized=False):
     """Need to remove samples:
     - with no phenotype
     - Related
@@ -356,10 +369,15 @@ def split_to_nfolds(phenotype, phenotype_fname, nfolds):
     no_pheno = df[pandas.isna(df[phenotype])][['FID', 'IID']]
     df = df[pandas.notna(df[phenotype])][['FID', 'IID']]
     # Remove samples to exclude
-    to_exclude = pandas.read_csv(SAMPLES_TO_EXCLUDE, delim_whitespace=True, header=None, names=['FID', 'IID'])
-    to_exclude = pandas.concat([to_exclude, no_pheno]).drop_duplicates().reset_index(drop=True)
-    df_all = df.merge(to_exclude.drop_duplicates(), on=['FID', 'IID'], how='left', indicator=True)
-    df = df_all[df_all['_merge'] == 'left_only'][['FID', 'IID']]
+    if samples_to_exclude:
+        to_exclude = pandas.read_csv(samples_to_exclude, delim_whitespace=True, header=None, names=['FID', 'IID'])
+        to_exclude = pandas.concat([to_exclude, no_pheno]).drop_duplicates().reset_index(drop=True)
+        df_all = df.merge(to_exclude.drop_duplicates(), on=['FID', 'IID'], how='left', indicator=True)
+        df = df_all[df_all['_merge'] == 'left_only'][['FID', 'IID']]
+        to_exclude.to_csv(WD + phenotype + '/to_exclude.fam', sep='\t', index=False)
+    if samples_to_include:
+        to_include = pandas.read_csv(samples_to_include, delim_whitespace=True, usecols=[0])
+        df = df[df.FID.isin(to_include.iloc[:,0].tolist())]
     # Split to N folds
     folds = numpy.array_split(df, nfolds)
     verboseprint('Writing cross val fam files')
@@ -368,7 +386,12 @@ def split_to_nfolds(phenotype, phenotype_fname, nfolds):
         fold.to_csv(filename, sep='\t', index=False)
         filename = WD + phenotype + '/fold_not%s.fam' % i
         pandas.concat(folds[:i] + folds[i + 1:]).to_csv(filename, sep='\t', index=False)
-    to_exclude.to_csv(WD + phenotype + '/to_exclude.fam', sep='\t', index=False)
+
+    if normalized:
+        # Normalze phenotype, and write phenotype by fold
+        verboseprint('Normalized phenontype')
+        cmd_str = f'''{RSCRIPT} {SCRIPTS_PATH}pheno_normalization.R --phenotype {phenotype}'''
+        exec_str(cmd_str)
 
 
 def is_binary_pheno(phenofile):
@@ -447,7 +470,7 @@ def summarize_plink_glm(phenotype, fold_idx):
 
 def main():
     parser = argparse.ArgumentParser(description='''A tool for Even-Odd PRS prediction. 
-    Trying to be as modular as possible, that why many arguments are given.''')
+    Trying to be as modular as possible, that is why many arguments are given.''')
     parser.add_argument('-f', '--phenotype', help='UKBB Phenotype to use')
     parser.add_argument('-t', '--phenotypefile',
                         help='UKBB Phenotype file name. If not specified, will generate one based on the given '
@@ -483,6 +506,8 @@ def main():
     parser.add_argument('--clumped', default=False, action='store_true',
                         help='Use pre-clumped data based on MAF (default False).')
     parser.add_argument('--AllPCs', default=False, action='store_true', help='Use 40 PCs instead of 10 as default.')
+    parser.add_argument('--samples_to_include', default=None,
+                        help='File name where first column are sample ids to keep. Is only used in split to folds.')
 
     args = parser.parse_args()
 
@@ -498,7 +523,7 @@ def main():
     if not os.path.exists(WD + phenotype):
         os.makedirs(WD + phenotype)
         os.makedirs(WD + phenotype + '/log/')
-    phenofile = get_phenotypefile(phenotype) if args.phenotypefile is None else args.phenotypefile
+    phenofile = get_phenotypefile(phenotype, verbose=args.verbose) if args.phenotypefile is None else args.phenotypefile
     evenodd = args.evenodd
     snps = args.snps
     if snps is None:
@@ -511,7 +536,7 @@ def main():
         covarnames = covarnames + ',body_mass_index_bmi_f21001_0_0'
 
     to_clump = True
-    split_to_nfolds(phenotype, phenofile, nfolds)
+    split_to_nfolds(phenotype, phenofile, nfolds, samples_to_exclude=None, samples_to_include=args.samples_to_include, normalized=args.normalized)
     target = ''  # Will be set downstream
     betagenerator = args.betagenerator
     if betagenerator.lower() == 'plink':
@@ -552,6 +577,8 @@ def main():
             verboseprint('Do not run predictor (PRSice)')
     else:
         append_str = ('-a %s' % args.append) if args.append != '' else ''
+        all_PCs_opt = '--AllPCs' if args.AllPCs else ''
+        normalized = '--normalized' if args.normalized else ''
         if evenodd:
             verboseprint('Split running to even/odd chromosomes')
             snps = get_even_odd_chrs_files()
@@ -567,14 +594,16 @@ def main():
                     logfile = f'{WD}{phenotype}/log/fold_{i}_chr_{chrom}_%s.log' % (
                         datetime.datetime.today().strftime('%Y_%m_%d_%H_%M_%S'))
                     jobname = f'%s{i}_{chrom}' % phenotype.replace('blood_', '')
-                    cmd_str = f'''qsub -S /bin/bash -j y -wd {WD} -o {logfile} {MULTI_CORE} {QUEUE} \
-                                       -N {jobname} {PYTHON3} "scripts/even_odd.py \
+                    expected_run_time = '%s:00:00' % int(25-chrom) # Range for different chromosomes
+                    cmd_str = f'''qsub -S /bin/bash -j y -wd {WD} -o {logfile} {MULTI_CORE} {QUEUE} -l h_rt={expected_run_time} \
+                                       -N {jobname} {PYTHON3} "{SCRIPTS_PATH}/even_odd.py \
                                        --phenotype {phenotype} --betagenerator {args.betagenerator} \
                                        --predictor {args.predictor} \
+                                       {all_PCs_opt} {normalized}\
                                        --nfolds {args.nfolds} -i {i} %(verbose)s {append_str} -t {phenofile} \
                                        %(imputed)s --chromosome {chrom}"''' % {
                         'verbose': '--verbose' if args.verbose else '', 'imputed': '--imputed' if args.imputed else ''}
-                    exec_str(cmd_str)
+                    exec_str(cmd_str, verbose=args.verbose, shell=False) #, env=os.environ.copy())
             else:
                 for s in snps:
                     logfile = WD + phenotype + '/log/fold_%s_snps_%s_%s.log' % (
@@ -586,14 +615,14 @@ def main():
 
                     # Submit a new job to the queue
                     cmd_str = f'''qsub -S /bin/bash {QUEUE} -j y -wd {WD} -o %(logfile)s {MULTI_CORE} -N %(jobname)s \
-                    {PYTHON3} "scripts/even_odd.py --phenotype %(phenotype)s --betagenerator %(betagen)s --predictor \
+                    {PYTHON3} "{SCRIPTS_PATH}/even_odd.py --phenotype %(phenotype)s --betagenerator %(betagen)s --predictor \
                     %(predictor)s --snps %(snps)s --nfolds %(nfolds)s -i %(i)s %(verbose)s %(append)s -t %(phenofile)s \
-                     %(imputed)s"''' % {
+                    {all_PCs_opt} {normalized} %(imputed)s"''' % {
                         'logfile': logfile, 'jobname': jobname, 'phenotype': phenotype, 'betagen': args.betagenerator,
                         'predictor': args.predictor, 'snps': s, 'nfolds': args.nfolds, 'i': i,
                         'verbose': '--verbose' if args.verbose else '', 'GIG': GIG, 'append': append_str,
                         'phenofile': phenofile, 'imputed': '--imputed' if args.imputed else ''}
-                    exec_str(cmd_str)
+                    exec_str(cmd_str, verbose=args.verbose, shell=True)
     # Print time at the end of script
     verboseprint(time.asctime(time.localtime(time.time())))
 
